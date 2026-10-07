@@ -1,0 +1,64 @@
+﻿@model List<WorkSpaceApp.Models.Workspace>
+
+@{
+    ViewData["Title"] = "My Workspaces";
+}
+
+<div class="workspace-header">
+    <div>
+        <h1>My Workspaces</h1>
+        <p>Projects and work organized in one place.</p>
+    </div>
+
+    <a asp-action="Create" class="btn btn-dark">
+        New Workspace
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <h3>No workspaces yet</h3>
+        <p>Create your first workspace to get started.</p>
+
+        <a asp-action="Create"
+           class="btn btn-outline-dark">
+            Create Workspace
+        </a>
+    </div>
+}
+else
+{
+    <div class="workspace-list">
+
+        @foreach (var workspace in Model)
+        {
+            <div class="workspace-item">
+
+                <div>
+                    <h3>@workspace.Name</h3>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                workspace.Description))
+                    {
+                        <p>@workspace.Description</p>
+                    }
+                    else
+                    {
+                        <p class="muted">
+                            No description added.
+                        </p>
+                    }
+                </div>
+
+                <a asp-action="Details"
+                   asp-route-id="@workspace.Id"
+                   class="view-link">
+                    Open
+                </a>
+
+            </div>
+        }
+
+    </div>
+}
