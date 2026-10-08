@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WorkSpaceApp.Data;
 using WorkSpaceApp.Models;
-
 using WorkSpaceApp.Repositories;
 using WorkSpaceApp.Repositories.Interfaces;
+using WorkSpaceApp.Services;
+using WorkSpaceApp.Services.Interfaces;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +20,22 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IWorkspaceMemberRepository,
     WorkspaceMemberRepository>();
+
+builder.Services.AddScoped<
+    IProjectRepository,
+    ProjectRepository>();
+
+builder.Services.AddScoped<
+    IWorkTaskRepository,
+    WorkTaskRepository>();
+
+builder.Services.AddScoped<
+    ICommentRepository,
+    CommentRepository>();
+
+builder.Services.AddScoped<
+    IWorkspaceAuthorizationService,
+    WorkspaceAuthorizationService>();
 
 //database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

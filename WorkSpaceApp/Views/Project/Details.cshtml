@@ -1,0 +1,153 @@
+﻿@model WorkSpaceApp.Models.Project
+
+@{
+    ViewData["Title"] = Model.Name;
+
+    var totalTasks = Model.Tasks.Count;
+
+    var completedTasks = Model.Tasks
+        .Count(t => t.Status == WorkSpaceApp.Models.TaskStatus.Done);
+
+    var progress = totalTasks == 0
+        ? 0
+        : (int)Math.Round(
+            completedTasks * 100.0 / totalTasks);
+}
+
+<div class="project-details">
+
+    <div class="workspace-back">
+
+        <a asp-controller="Workspace"
+           asp-action="Details"
+           asp-route-id="@Model.WorkspaceId">
+            ← @Model.Workspace.Name
+        </a>
+
+    </div>
+
+    <div class="project-details-header">
+
+        <div>
+
+            <div class="page-eyebrow">
+                Project
+            </div>
+
+            <h1>@Model.Name</h1>
+
+            <p>
+                @(Model.Description ?? "No description added.")
+            </p>
+
+        </div>
+
+        <span class="status-badge">
+            @Model.Status
+        </span>
+
+    </div>
+
+    <div class="project-summary">
+
+        <div class="simple-stat">
+            <span>Tasks</span>
+            <strong>@totalTasks</strong>
+        </div>
+
+        <div class="simple-stat">
+            <span>Completed</span>
+            <strong>@completedTasks</strong>
+        </div>
+
+        <div class="simple-stat">
+            <span>Progress</span>
+            <strong>@progress%</strong>
+        </div>
+
+    </div>
+
+    <div class="workspace-section">
+
+        <div class="section-heading">
+
+            <div>
+                <h2>Tasks</h2>
+
+                <p>
+                    Work items for this project.
+                </p>
+            </div>
+
+            <a asp-controller="WorkTask"
+               asp-action="Create"
+               asp-route-projectId="@Model.Id"
+               class="btn btn-dark">
+                New Task
+            </a>
+
+        </div>
+
+        @if (!Model.Tasks.Any())
+        {
+            <div class="empty-state">
+
+                <h3>No tasks yet</h3>
+
+                <p>
+                    Add tasks to start tracking the project.
+                </p>
+
+                <a asp-controller="WorkTask"
+                   asp-action="Create"
+                   asp-route-projectId="@Model.Id"
+                   class="btn btn-outline-dark">
+                    Create Task
+                </a>
+
+            </div>
+        }
+        else
+        {
+            <div class="task-list">
+
+                @foreach (var task in Model.Tasks)
+                {
+                    <div class="task-item">
+
+                        <div>
+
+                            <h3>@task.Title</h3>
+
+                            <div class="task-meta">
+
+                                <span>
+                                    @task.Priority
+                                </span>
+
+                                <span>
+                                    @task.Status
+                                </span>
+
+                                @if (task.DueDate.HasValue)
+                                {
+                                    <span>
+                                        Due
+                                        @task.DueDate.Value
+                                        .ToString("dd MMM yyyy")
+                                    </span>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+        }
+
+    </div>
+
+</div>

@@ -1,0 +1,143 @@
+﻿@model WorkSpaceApp.ViewModels.TaskCreateViewModel
+
+@{
+    ViewData["Title"] = "New Task";
+    var members = ViewBag.Members
+        as List<WorkSpaceApp.Models.WorkspaceMember>;
+}
+
+<div class="form-page">
+
+    <div class="form-header">
+
+        <div class="page-eyebrow">
+            @ViewBag.ProjectName
+        </div>
+
+        <h1>New Task</h1>
+
+        <p>
+            Add a task and assign it to a team member.
+        </p>
+
+    </div>
+
+    <form asp-action="Create" method="post">
+
+        <input asp-for="ProjectId" type="hidden" />
+
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger">
+        </div>
+
+        <div class="form-group">
+
+            <label asp-for="Title"></label>
+
+            <input asp-for="Title"
+                   class="form-control"
+                   placeholder="e.g. Design login page" />
+
+            <span asp-validation-for="Title"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="form-group">
+
+            <label asp-for="Description"></label>
+
+            <textarea asp-for="Description"
+                      class="form-control"
+                      rows="5"
+                      placeholder="Describe what needs to be done.">
+            </textarea>
+
+            <span asp-validation-for="Description"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label asp-for="Priority"></label>
+
+                <select asp-for="Priority"
+                        asp-items="Html.GetEnumSelectList<
+                                                    WorkSpaceApp.Models.TaskPriority>()"
+                        class="form-control">
+                </select>
+
+            </div>
+
+            <div class="form-group">
+
+                <label asp-for="DueDate"></label>
+
+                <input asp-for="DueDate"
+                       type="date"
+                       class="form-control" />
+
+            </div>
+
+        </div>
+
+        <div class="form-group">
+
+            <label asp-for="AssignedToUserId">
+                Assign to
+            </label>
+
+            <select asp-for="AssignedToUserId"
+                    class="form-control">
+
+                <option value="">
+                    Unassigned
+                </option>
+
+                @if (members != null)
+                {
+                    foreach (var member in members)
+                    {
+                        <option value="@member.UserId">
+                            @member.User.FullName
+                            (@member.User.Email)
+                        </option>
+                    }
+                }
+
+            </select>
+
+            <span asp-validation-for="AssignedToUserId"
+                  class="text-danger">
+            </span>
+
+        </div>
+
+        <div class="form-actions">
+
+            <a asp-controller="Project"
+               asp-action="Details"
+               asp-route-id="@Model.ProjectId"
+               class="btn btn-light">
+                Cancel
+            </a>
+
+            <button type="submit"
+                    class="btn btn-dark">
+                Create Task
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

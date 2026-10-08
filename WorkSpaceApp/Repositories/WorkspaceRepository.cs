@@ -35,25 +35,43 @@ namespace WorkSpaceApp.Repositories
         public async Task<Workspace?> GetDetailsAsync(int id)
         {
             return await _context.Workspaces
+
                 .Include(w => w.Members)
                     .ThenInclude(m => m.User)
+
                 .Include(w => w.Projects)
                     .ThenInclude(p => p.Tasks)
+
                 .FirstOrDefaultAsync(w => w.Id == id);
         }
 
-        public async Task AddAsync(Workspace workspace)
+        public async Task CreateAsync(
+            Workspace workspace,
+            string ownerUserId)
         {
+            var membership = new WorkspaceMember
+            {
+                UserId = ownerUserId,
+                Role = WorkspaceRole.Owner,
+                Workspace = workspace
+            };
+
+            workspace.Members.Add(membership);
+
             await _context.Workspaces.AddAsync(workspace);
+
+            await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(Workspace workspace)
+        public async Task UpdateAsync(
+            Workspace workspace)
         {
             _context.Workspaces.Update(workspace);
             await Task.CompletedTask;
         }
 
-        public async Task DeleteAsync(Workspace workspace)
+        public async Task DeleteAsync(
+            Workspace workspace)
         {
             _context.Workspaces.Remove(workspace);
             await Task.CompletedTask;

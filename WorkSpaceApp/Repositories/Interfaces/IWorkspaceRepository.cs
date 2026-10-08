@@ -4,14 +4,15 @@ namespace WorkSpaceApp.Repositories.Interfaces
 {
     public interface IWorkspaceRepository
     {
-        Task<List<Workspace>> GetUserWorkspacesAsync(
-            string userId);
+        Task<List<Workspace>> GetUserWorkspacesAsync(string userId);
 
         Task<Workspace?> GetByIdAsync(int id);
 
         Task<Workspace?> GetDetailsAsync(int id);
 
-        Task AddAsync(Workspace workspace);
+        Task CreateAsync(
+            Workspace workspace,
+            string ownerUserId);
 
         Task UpdateAsync(Workspace workspace);
 

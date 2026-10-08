@@ -29,7 +29,20 @@ namespace WorkSpaceApp.Repositories
             return await _context.WorkspaceMembers
                 .Include(m => m.User)
                 .Where(m => m.WorkspaceId == workspaceId)
+                .OrderBy(m => m.User.FullName)
                 .ToListAsync();
+        }
+
+        public async Task<WorkspaceMember?>
+            GetMembershipAsync(
+                int workspaceId,
+                string userId)
+        {
+            return await _context.WorkspaceMembers
+                .Include(m => m.User)
+                .FirstOrDefaultAsync(
+                    m => m.WorkspaceId == workspaceId &&
+                         m.UserId == userId);
         }
 
         public async Task<bool> IsMemberAsync(
@@ -37,9 +50,16 @@ namespace WorkSpaceApp.Repositories
             string userId)
         {
             return await _context.WorkspaceMembers
-                .AnyAsync(m =>
-                    m.WorkspaceId == workspaceId &&
-                    m.UserId == userId);
+                .AnyAsync(
+                    m => m.WorkspaceId == workspaceId &&
+                         m.UserId == userId);
+        }
+
+        public async Task RemoveAsync(
+            WorkspaceMember member)
+        {
+            _context.WorkspaceMembers.Remove(member);
+            await Task.CompletedTask;
         }
 
         public async Task SaveAsync()

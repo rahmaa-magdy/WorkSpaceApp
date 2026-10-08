@@ -11,15 +11,12 @@ namespace WorkSpaceApp.Controllers
     {
         private readonly IWorkspaceRepository _workspaceRepository;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IWorkspaceMemberRepository _memberRepository;
 
         public WorkspaceController(
-    IWorkspaceRepository workspaceRepository,
-    IWorkspaceMemberRepository memberRepository,
-    UserManager<ApplicationUser> userManager)
+            IWorkspaceRepository workspaceRepository,
+            UserManager<ApplicationUser> userManager)
         {
             _workspaceRepository = workspaceRepository;
-            _memberRepository = memberRepository;
             _userManager = userManager;
         }
 
@@ -27,13 +24,19 @@ namespace WorkSpaceApp.Controllers
         {
             var userId = _userManager.GetUserId(User);
 
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Challenge();
+            }
+
             var workspaces =
                 await _workspaceRepository
-                    .GetUserWorkspacesAsync(userId!);
+                    .GetUserWorkspacesAsync(userId);
 
             return View(workspaces);
         }
 
+        [HttpGet]
         public IActionResult Create()
         {
             return View();
@@ -42,33 +45,28 @@ namespace WorkSpaceApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
-    Workspace workspace)
+            Workspace workspace)
         {
             if (!ModelState.IsValid)
             {
                 return View(workspace);
             }
 
-            await _workspaceRepository.AddAsync(workspace);
-
-            await _workspaceRepository.SaveAsync();
-
             var userId = _userManager.GetUserId(User);
 
-            var membership = new WorkspaceMember
+            if (string.IsNullOrEmpty(userId))
             {
-                WorkspaceId = workspace.Id,
-                UserId = userId!,
-                Role = WorkspaceRole.Owner
-            };
+                return Challenge();
+            }
 
-            await _memberRepository.AddAsync(membership);
-
-            await _memberRepository.SaveAsync();
+            await _workspaceRepository.CreateAsync(
+                workspace,
+                userId);
 
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
             var workspace =
@@ -77,6 +75,16 @@ namespace WorkSpaceApp.Controllers
             if (workspace == null)
             {
                 return NotFound();
+            }
+
+            var userId = _userManager.GetUserId(User);
+
+            var isMember = workspace.Members
+                .Any(m => m.UserId == userId);
+
+            if (!isMember)
+            {
+                return Forbid();
             }
 
             return View(workspace);
