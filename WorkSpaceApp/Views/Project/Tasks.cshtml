@@ -1,0 +1,170 @@
+﻿@model WorkSpaceApp.ViewModels.ProjectTasksViewModel
+@using WorkSpaceApp.Models
+
+@{
+    ViewData["Title"] = "Project Tasks";
+}
+
+<div class="tasks-page">
+
+    <a asp-action="Details"
+       asp-route-id="@Model.Project.Id"
+       class="back-link">
+        ← @Model.Project.Name
+    </a>
+
+    <div class="page-header">
+
+        <div>
+            <div class="page-eyebrow">
+                Project tasks
+            </div>
+
+            <h1>@Model.Project.Name</h1>
+
+            <p>
+                Search and filter tasks in this project.
+            </p>
+        </div>
+
+        <a asp-controller="WorkTask"
+           asp-action="Create"
+           asp-route-projectId="@Model.Project.Id"
+           class="btn btn-primary">
+            + New Task
+        </a>
+
+    </div>
+
+
+    <form method="get"
+          asp-action="Tasks"
+          class="task-filter-bar">
+
+        <input type="hidden"
+               name="id"
+               value="@Model.Project.Id" />
+
+        <input type="text"
+               name="search"
+               value="@Model.Search"
+               class="form-control"
+               placeholder="Search tasks..." />
+
+        <select name="status"
+                class="form-control">
+
+            <option value="">All statuses</option>
+
+            @foreach (var item in Enum.GetValues<WorkSpaceApp.Models.TaskStatus>())
+            {
+                if (Model.Status.HasValue && Model.Status.Value == item)
+                {
+                    <option value="@item" selected>@item</option>
+                }
+                else
+                {
+                    <option value="@item">@item</option>
+                }
+            }
+
+        </select>
+
+        <select name="priority"
+                class="form-control">
+
+            <option value="">All priorities</option>
+
+            @foreach (var item in Enum.GetValues<TaskPriority>())
+            {
+                <option value="@item"
+                        selected="@(Model.Priority == item)">
+                    @item
+                </option>
+            }
+
+        </select>
+
+        <button type="submit"
+                class="btn btn-secondary">
+            Filter
+        </button>
+
+        <a asp-action="Tasks"
+           asp-route-id="@Model.Project.Id"
+           class="btn btn-secondary">
+            Clear
+        </a>
+
+    </form>
+
+
+    @if (!Model.Tasks.Any())
+    {
+        <div class="empty-state">
+            <h3>No matching tasks</h3>
+            <p>Try changing the search or filters.</p>
+        </div>
+    }
+    else
+    {
+        <div class="task-table">
+
+            @foreach (var task in Model.Tasks)
+            {
+                <a asp-controller="WorkTask"
+                   asp-action="Details"
+                   asp-route-id="@task.Id"
+                   class="task-table-row">
+
+                    <div>
+                        <strong>@task.Title</strong>
+
+                        @if (!string.IsNullOrWhiteSpace(task.Description))
+                        {
+                            <span>
+                                @task.Description
+                            </span>
+                        }
+                    </div>
+
+                    <span class="status-badge">
+                        @task.Status
+                    </span>
+
+                    <span class="priority-badge">
+                        @task.Priority
+                    </span>
+
+                    <span>
+                        @(task.DueDate?.ToString("MMM dd, yyyy") ?? "No due date")
+                    </span>
+
+                </a>
+            }
+
+        </div>
+
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="pagination">
+
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <a asp-action="Tasks"
+                       asp-route-id="@Model.Project.Id"
+                       asp-route-search="@Model.Search"
+                       asp-route-status="@Model.Status"
+                       asp-route-priority="@Model.Priority"
+                       asp-route-page="@i"
+                       class="@(i == Model.Page ? "active" : "")">
+                        @i
+                    </a>
+                }
+
+            </div>
+        }
+    }
+
+</div>

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using WorkSpaceApp.Data;
 using WorkSpaceApp.Models;
 using WorkSpaceApp.Repositories.Interfaces;
+using WorkSpaceApp.Services.Interfaces;
 using WorkSpaceApp.ViewModels;
 
 namespace WorkSpaceApp.Controllers
@@ -14,36 +15,40 @@ namespace WorkSpaceApp.Controllers
     {
         private readonly IWorkTaskRepository _taskRepository;
         private readonly IProjectRepository _projectRepository;
-        private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IWorkspaceAuthorizationService _authorizationService;
+        private readonly ApplicationDbContext _context;
 
         public WorkTaskController(
             IWorkTaskRepository taskRepository,
             IProjectRepository projectRepository,
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IWorkspaceAuthorizationService authorizationService,
+            ApplicationDbContext context)
         {
             _taskRepository = taskRepository;
             _projectRepository = projectRepository;
-            _context = context;
             _userManager = userManager;
+            _authorizationService = authorizationService;
+            _context = context;
         }
 
         [HttpGet]
         public async Task<IActionResult> Create(int projectId)
         {
-            var project =
-                await _projectRepository.GetDetailsAsync(projectId);
+            var userId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(userId))
+                return Challenge();
+
+            var project = await _projectRepository.GetDetailsAsync(projectId);
 
             if (project == null)
-            {
                 return NotFound();
-            }
 
-            if (!IsMember(project.Workspace))
-            {
+            if (!await _authorizationService.CanCreateAsync(
+                    project.WorkspaceId, userId))
                 return Forbid();
-            }
 
             await LoadMembers(project.WorkspaceId);
 
@@ -57,21 +62,35 @@ namespace WorkSpaceApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(
-            TaskCreateViewModel model)
+        public async Task<IActionResult> Create(TaskCreateViewModel model)
         {
-            var project =
-                await _projectRepository.GetDetailsAsync(
-                    model.ProjectId);
+            var userId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(userId))
+                return Challenge();
+
+            var project = await _projectRepository.GetDetailsAsync(model.ProjectId);
 
             if (project == null)
-            {
                 return NotFound();
-            }
 
-            if (!IsMember(project.Workspace))
-            {
+            if (!await _authorizationService.CanCreateAsync(
+                    project.WorkspaceId, userId))
                 return Forbid();
+
+            if (!string.IsNullOrEmpty(model.AssignedToUserId))
+            {
+                var isAssignedUserMember =
+                    await _authorizationService.IsMemberAsync(
+                        project.WorkspaceId,
+                        model.AssignedToUserId);
+
+                if (!isAssignedUserMember)
+                {
+                    ModelState.AddModelError(
+                        nameof(model.AssignedToUserId),
+                        "The selected user is not a member of this workspace.");
+                }
             }
 
             if (!ModelState.IsValid)
@@ -81,39 +100,23 @@ namespace WorkSpaceApp.Controllers
                 return View(model);
             }
 
-            if (!string.IsNullOrEmpty(model.AssignedToUserId))
-            {
-                var isWorkspaceMember =
-                    project.Workspace.Members
-                        .Any(m =>
-                            m.UserId == model.AssignedToUserId);
-
-                if (!isWorkspaceMember)
-                {
-                    ModelState.AddModelError(
-                        nameof(model.AssignedToUserId),
-                        "The selected user is not a workspace member.");
-
-                    await LoadMembers(project.WorkspaceId);
-                    ViewBag.ProjectName = project.Name;
-
-                    return View(model);
-                }
-            }
-
             var task = new WorkTask
             {
-                Title = model.Title,
-                Description = model.Description,
+                Title = model.Title.Trim(),
+                Description = string.IsNullOrWhiteSpace(model.Description)
+                    ? null
+                    : model.Description.Trim(),
                 Priority = model.Priority,
                 DueDate = model.DueDate,
                 AssignedToUserId = model.AssignedToUserId,
                 ProjectId = model.ProjectId,
-                Status = TaskStatus.ToDo
+                Status = WorkSpaceApp.Models.TaskStatus.ToDo
             };
 
             await _taskRepository.AddAsync(task);
             await _taskRepository.SaveAsync();
+
+            TempData["Success"] = "Task created successfully.";
 
             return RedirectToAction(
                 "Details",
@@ -124,18 +127,19 @@ namespace WorkSpaceApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            var task =
-                await _taskRepository.GetDetailsAsync(id);
+            var userId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(userId))
+                return Challenge();
+
+            var task = await _taskRepository.GetDetailsAsync(id);
 
             if (task == null)
-            {
                 return NotFound();
-            }
 
-            if (!IsMember(task.Project.Workspace))
-            {
+            if (!await _authorizationService.IsMemberAsync(
+                    task.Project.WorkspaceId, userId))
                 return Forbid();
-            }
 
             return View(task);
         }
@@ -143,22 +147,21 @@ namespace WorkSpaceApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var task =
-                await _taskRepository.GetDetailsAsync(id);
+            var userId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(userId))
+                return Challenge();
+
+            var task = await _taskRepository.GetDetailsAsync(id);
 
             if (task == null)
-            {
                 return NotFound();
-            }
 
-            if (!IsMember(task.Project.Workspace))
-            {
+            if (!await _authorizationService.CanCreateAsync(
+                    task.Project.WorkspaceId, userId))
                 return Forbid();
-            }
 
             await LoadMembers(task.Project.WorkspaceId);
-
-            ViewBag.ProjectName = task.Project.Name;
 
             var model = new TaskEditViewModel
             {
@@ -177,51 +180,47 @@ namespace WorkSpaceApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(
-            TaskEditViewModel model)
+        public async Task<IActionResult> Edit(TaskEditViewModel model)
         {
-            var task =
-                await _taskRepository.GetDetailsAsync(model.Id);
+            var userId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(userId))
+                return Challenge();
+
+            var task = await _taskRepository.GetDetailsAsync(model.Id);
 
             if (task == null)
-            {
                 return NotFound();
-            }
 
-            if (!IsMember(task.Project.Workspace))
-            {
+            if (!await _authorizationService.CanCreateAsync(
+                    task.Project.WorkspaceId, userId))
                 return Forbid();
+
+            if (!string.IsNullOrEmpty(model.AssignedToUserId))
+            {
+                var isAssignedUserMember =
+                    await _authorizationService.IsMemberAsync(
+                        task.Project.WorkspaceId,
+                        model.AssignedToUserId);
+
+                if (!isAssignedUserMember)
+                {
+                    ModelState.AddModelError(
+                        nameof(model.AssignedToUserId),
+                        "The selected user is not a member of this workspace.");
+                }
             }
 
             if (!ModelState.IsValid)
             {
                 await LoadMembers(task.Project.WorkspaceId);
-                ViewBag.ProjectName = task.Project.Name;
                 return View(model);
             }
 
-            if (!string.IsNullOrEmpty(model.AssignedToUserId))
-            {
-                var isWorkspaceMember =
-                    task.Project.Workspace.Members
-                        .Any(m =>
-                            m.UserId == model.AssignedToUserId);
-
-                if (!isWorkspaceMember)
-                {
-                    ModelState.AddModelError(
-                        nameof(model.AssignedToUserId),
-                        "The selected user is not a workspace member.");
-
-                    await LoadMembers(task.Project.WorkspaceId);
-                    ViewBag.ProjectName = task.Project.Name;
-
-                    return View(model);
-                }
-            }
-
-            task.Title = model.Title;
-            task.Description = model.Description;
+            task.Title = model.Title.Trim();
+            task.Description = string.IsNullOrWhiteSpace(model.Description)
+                ? null
+                : model.Description.Trim();
             task.Status = model.Status;
             task.Priority = model.Priority;
             task.DueDate = model.DueDate;
@@ -229,6 +228,8 @@ namespace WorkSpaceApp.Controllers
 
             await _taskRepository.UpdateAsync(task);
             await _taskRepository.SaveAsync();
+
+            TempData["Success"] = "Task updated successfully.";
 
             return RedirectToAction(
                 nameof(Details),
@@ -239,23 +240,26 @@ namespace WorkSpaceApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var task =
-                await _taskRepository.GetDetailsAsync(id);
+            var userId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(userId))
+                return Challenge();
+
+            var task = await _taskRepository.GetDetailsAsync(id);
 
             if (task == null)
-            {
                 return NotFound();
-            }
 
-            if (!IsMember(task.Project.Workspace))
-            {
+            if (!await _authorizationService.CanCreateAsync(
+                    task.Project.WorkspaceId, userId))
                 return Forbid();
-            }
 
             var projectId = task.ProjectId;
 
             await _taskRepository.DeleteAsync(task);
             await _taskRepository.SaveAsync();
+
+            TempData["Success"] = "Task deleted successfully.";
 
             return RedirectToAction(
                 "Details",
@@ -263,23 +267,15 @@ namespace WorkSpaceApp.Controllers
                 new { id = projectId });
         }
 
-        private bool IsMember(Workspace workspace)
-        {
-            var userId = _userManager.GetUserId(User);
-
-            return workspace.Members
-                .Any(m => m.UserId == userId);
-        }
-
         private async Task LoadMembers(int workspaceId)
         {
             var members = await _context.WorkspaceMembers
-                .Where(m => m.WorkspaceId == workspaceId)
                 .Include(m => m.User)
-                .OrderBy(m => m.User!.FullName)
+                .Where(m => m.WorkspaceId == workspaceId)
+                .OrderBy(m => m.User.FullName)
                 .ToListAsync();
 
-            ViewBag.Members = members;
+            ViewBag.WorkspaceMembers = members;
         }
     }
 }

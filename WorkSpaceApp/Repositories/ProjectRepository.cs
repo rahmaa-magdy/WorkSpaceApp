@@ -35,6 +35,8 @@ namespace WorkSpaceApp.Repositories
             return await _context.Projects
 
                 .Include(p => p.Workspace)
+                    .ThenInclude(w => w.Members)
+                        .ThenInclude(m => m.User)
 
                 .Include(p => p.Tasks)
                     .ThenInclude(t => t.AssignedToUser)

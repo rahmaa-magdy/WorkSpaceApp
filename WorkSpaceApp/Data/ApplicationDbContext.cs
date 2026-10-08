@@ -28,14 +28,14 @@ namespace WorkSpaceApp.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // WorkspaceMember -> Workspace
+            // WorkspaceMember => Workspace
             modelBuilder.Entity<WorkspaceMember>()
                 .HasOne(wm => wm.Workspace)
                 .WithMany(w => w.Members)
                 .HasForeignKey(wm => wm.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // WorkspaceMember -> User
+            // WorkspaceMember => User
             modelBuilder.Entity<WorkspaceMember>()
                 .HasOne(wm => wm.User)
                 .WithMany(u => u.WorkspaceMemberships)
@@ -51,35 +51,35 @@ namespace WorkSpaceApp.Data
                 })
                 .IsUnique();
 
-            // Workspace -> Projects
+            // Workspace => Projects
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.Workspace)
                 .WithMany(w => w.Projects)
                 .HasForeignKey(p => p.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Project -> Tasks
+            // Project => Tasks
             modelBuilder.Entity<WorkTask>()
                 .HasOne(t => t.Project)
                 .WithMany(p => p.Tasks)
                 .HasForeignKey(t => t.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Task -> Assigned User
+            // Task => Assigned User
             modelBuilder.Entity<WorkTask>()
                 .HasOne(t => t.AssignedToUser)
                 .WithMany(u => u.AssignedTasks)
                 .HasForeignKey(t => t.AssignedToUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Task -> Comments
+            // Task => Comments
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.WorkTask)
                 .WithMany(t => t.Comments)
                 .HasForeignKey(c => c.WorkTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Comment -> User
+            // Comment => User
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
                 .WithMany(u => u.Comments)

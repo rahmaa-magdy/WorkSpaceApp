@@ -6,6 +6,15 @@ namespace WorkSpaceApp.Repositories.Interfaces
     {
         Task<List<WorkTask>> GetProjectTasksAsync(int projectId);
 
+        Task<(List<WorkTask> Tasks, int TotalItems)>
+            SearchProjectTasksAsync(
+                int projectId,
+                string? search,
+                WorkSpaceApp.Models.TaskStatus? status,
+                TaskPriority? priority,
+                int page,
+                int pageSize);
+
         Task<WorkTask?> GetDetailsAsync(int id);
 
         Task<WorkTask?> GetByIdAsync(int id);

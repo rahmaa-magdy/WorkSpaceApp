@@ -15,6 +15,35 @@
 }
 
 <div class="project-details">
+    <div class="project-actions">
+
+        <a asp-action="Edit"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-dark">
+            Edit
+        </a>
+
+        <a asp-action="Tasks"
+           asp-route-id="@Model.Id"
+           class="btn btn-secondary">
+            View All Tasks
+        </a>
+
+        <form asp-action="Delete"
+              asp-route-id="@Model.Id"
+              method="post"
+              onsubmit="return confirm('Delete this project and its tasks?');">
+
+            @Html.AntiForgeryToken()
+
+            <button type="submit"
+                    class="btn btn-light text-danger">
+                Delete
+            </button>
+
+        </form>
+
+    </div>
 
     <div class="workspace-back">
 

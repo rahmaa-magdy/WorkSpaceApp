@@ -1,16 +1,55 @@
 ﻿@model WorkSpaceApp.Models.Workspace
+@using WorkSpaceApp.Models
 
 @{
     ViewData["Title"] = Model.Name;
+
+    var currentRole =
+        ViewBag.CurrentRole is WorkspaceRole role
+            ? role
+            : WorkspaceRole.Member;
+
+    var canManage =
+        currentRole == WorkspaceRole.Owner ||
+        currentRole == WorkspaceRole.Manager;
+
+    var isOwner =
+        currentRole == WorkspaceRole.Owner;
+
+    var totalTasks =
+        Model.Projects.SelectMany(p => p.Tasks).Count();
+
+    var completedTasks =
+        Model.Projects
+            .SelectMany(p => p.Tasks)
+            .Count(t => t.Status == WorkSpaceApp.Models.TaskStatus.Done);
 }
 
-<div class="workspace-details">
+<div class="workspace-details-page">
 
-    <div class="workspace-details-header">
+    <a asp-action="Index" class="back-link">
+        ← Workspaces
+    </a>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Success"]
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    <div class="workspace-header">
 
         <div>
             <div class="page-eyebrow">
-                Workspace
+                @currentRole
             </div>
 
             <h1>@Model.Name</h1>
@@ -21,245 +60,314 @@
             }
         </div>
 
-        <div>
-            <a asp-controller="Project"
-               asp-action="Create"
-               asp-route-workspaceId="@Model.Id"
-               class="btn btn-dark">
-                New Project
-            </a>
-        </div>
+        @if (isOwner)
+        {
+            <div class="workspace-actions">
+
+                <a asp-action="Edit"
+                   asp-route-id="@Model.Id"
+                   class="btn btn-secondary">
+                    Edit
+                </a>
+
+                <form asp-action="Delete"
+                      asp-route-id="@Model.Id"
+                      method="post"
+                      onsubmit="return confirm('Delete this workspace and all its projects and tasks?');">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit"
+                            class="btn btn-danger">
+                        Delete
+                    </button>
+
+                </form>
+
+            </div>
+        }
 
     </div>
+
 
     <div class="workspace-stats">
 
-        <div class="simple-stat">
-            <span>Projects</span>
+        <div class="stat-card">
+            <span class="stat-label">Projects</span>
             <strong>@Model.Projects.Count</strong>
         </div>
 
-        <div class="simple-stat">
-            <span>Members</span>
+        <div class="stat-card">
+            <span class="stat-label">Members</span>
             <strong>@Model.Members.Count</strong>
         </div>
 
-        <div class="simple-stat">
-            <span>Tasks</span>
+        <div class="stat-card">
+            <span class="stat-label">Tasks</span>
+            <strong>@totalTasks</strong>
+        </div>
 
-            <strong>
-                @Model.Projects
-                .SelectMany(p => p.Tasks)
-                .Count()
-            </strong>
+        <div class="stat-card">
+            <span class="stat-label">Completed</span>
+            <strong>@completedTasks</strong>
         </div>
 
     </div>
 
-    <div class="workspace-section">
 
-        <div class="section-heading">
-            <div>
-                <h2>Projects</h2>
-                <p>Projects inside this workspace.</p>
-            </div>
-        </div>
+    <div class="workspace-content-grid">
 
-        @if (!Model.Projects.Any())
-        {
-            <div class="empty-state">
+        <section class="workspace-section">
 
-                <h3>No projects yet</h3>
+            <div class="section-header">
 
-                <p>
-                    Create a project to start organizing your work.
-                </p>
-
-                <a asp-controller="Project"
-                   asp-action="Create"
-                   asp-route-workspaceId="@Model.Id"
-                   class="btn btn-outline-dark">
-                    Create Project
-                </a>
-
-            </div>
-        }
-        else
-        {
-            <div class="project-list">
-
-                @foreach (var project in Model.Projects)
-                {
-                    <div class="project-item">
-
-                        <div>
-                            <h3>@project.Name</h3>
-
-                            <p>
-                                @(string.IsNullOrWhiteSpace(
-                                                        project.Description)
-                                                        ? "No description."
-                                                        : project.Description)
-                    </p>
+                <div>
+                    <h2>Projects</h2>
+                    <p>Projects inside this workspace.</p>
                 </div>
 
-                        <div class="project-meta">
-
-                            <span>
-                                @project.Status
-                            </span>
-
-                            <span>
-                                @project.Tasks.Count tasks
-                            </span>
-
-                        </div>
-
-                    </div>
-                        }
+                @if (canManage)
+                {
+                    <a asp-controller="Project"
+                       asp-action="Create"
+                       asp-route-workspaceId="@Model.Id"
+                       class="btn btn-primary">
+                        + New Project
+                    </a>
+                }
 
             </div>
-        }
 
-    </div>
-    <section class="workspace-section">
 
-        <div class="section-heading">
-
-            <div>
-                <h2>Members</h2>
-                <p>People working in this workspace.</p>
-            </div>
-
-        </div>
-
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success">
-                @TempData["Success"]
-            </div>
-        }
-
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger">
-                @TempData["Error"]
-            </div>
-        }
-
-        <div class="member-list">
-
-            @foreach (var member in Model.Members)
+            @if (!Model.Projects.Any())
             {
-                <div class="member-item">
+                <div class="empty-state">
+                    <h3>No projects yet</h3>
+                    <p>Create the first project for this workspace.</p>
+                </div>
+            }
+            else
+            {
+                <div class="project-list">
 
-                    <div class="member-info">
+                    @foreach (var project in Model.Projects.OrderByDescending(p => p.CreatedAt))
+                    {
+                        var projectTasks = project.Tasks.Count;
+                        var doneTasks = project.Tasks.Count(
+                        t => t.Status == WorkSpaceApp.Models.TaskStatus.Done);
 
-                        <div class="member-avatar">
-                            @member.User.FullName
-                            .Substring(0, 1)
-                            .ToUpper()
-                        </div>
+                        <a asp-controller="Project"
+                           asp-action="Details"
+                           asp-route-id="@project.Id"
+                           class="project-item">
 
-                        <div>
-                            <strong>
-                                @member.User.FullName
-                            </strong>
+                            <div class="project-item-main">
 
-                            <span>
-                                @member.User.Email
-                            </span>
-                        </div>
+                                <h3>@project.Name</h3>
 
-                    </div>
+                                @if (!string.IsNullOrWhiteSpace(project.Description))
+                                {
+                                    <p>@project.Description</p>
+                                }
 
-                    <div class="member-right">
+                            </div>
 
-                        <span class="role-badge">
-                            @member.Role
-                        </span>
+                            <div class="project-item-meta">
 
-                        @if (member.Role !=
-                                            WorkSpaceApp.Models.WorkspaceRole.Owner)
-                        {
-                            <form asp-controller="WorkspaceMember"
-                                  asp-action="Remove"
-                                  method="post"
-                                  onsubmit="return confirm('Remove this member?');">
+                                <span>
+                                    @doneTasks / @projectTasks tasks
+                                </span>
 
-                                @Html.AntiForgeryToken()
+                                <span class="status-badge">
+                                    @project.Status
+                                </span>
 
-                                <input type="hidden"
-                                       name="workspaceId"
-                                       value="@Model.Id" />
+                            </div>
 
-                                <input type="hidden"
-                                       name="userId"
-                                       value="@member.UserId" />
-
-                                <button type="submit"
-                                        class="member-remove">
-                                    Remove
-                                </button>
-
-                            </form>
-                        }
-
-                    </div>
+                        </a>
+                    }
 
                 </div>
             }
 
-        </div>
+        </section>
 
-    </section>
-    <div class="add-member-box">
 
-        <h3>Add a member</h3>
+        <aside class="workspace-section">
 
-        <p>
-            Add an existing registered user to this workspace.
-        </p>
+            <div class="section-header">
 
-        <form asp-controller="WorkspaceMember"
-              asp-action="Add"
-              method="post">
-
-            @Html.AntiForgeryToken()
-
-            <input type="hidden"
-                   name="WorkspaceId"
-                   value="@Model.Id" />
-
-            <div class="member-form-row">
-
-                <input type="email"
-                       name="Email"
-                       class="form-control"
-                       placeholder="member@email.com"
-                       required />
-
-                <select name="Role"
-                        class="form-control">
-
-                    <option value="Member">
-                        Member
-                    </option>
-
-                    <option value="Manager">
-                        Manager
-                    </option>
-
-                </select>
-
-                <button type="submit"
-                        class="btn btn-dark">
-                    Add Member
-                </button>
+                <div>
+                    <h2>Members</h2>
+                    <p>People working in this workspace.</p>
+                </div>
 
             </div>
 
-        </form>
+
+            <div class="member-list">
+
+                @foreach (var member in Model.Members.OrderBy(m => m.Role).ThenBy(m => m.User.FullName))
+                {
+                    <div class="member-item">
+
+                        <div class="member-info">
+
+                            <div class="member-avatar">
+                                @member.User.FullName.Substring(
+                                0,
+                                                        1
+                                                        ).ToUpper()
+                        </div>
+
+                            <div>
+                                <strong>
+                                    @member.User.FullName
+                                </strong>
+
+                                <span>
+                                    @member.User.Email
+                                </span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="member-right">
+
+                            <span class="role-badge">
+                                @member.Role
+                            </span>
+
+                        @if (isOwner && member.Role != WorkspaceRole.Owner)
+                            {
+                                <form asp-controller="WorkspaceMember"
+                                      asp-action="ChangeRole"
+                                      method="post"
+                                      class="role-form">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden"
+                                           name="WorkspaceId"
+                                           value="@Model.Id" />
+
+                                    <input type="hidden"
+                                           name="UserId"
+                                           value="@member.UserId" />
+
+                                    <select name="Role"
+                                            class="role-select"
+                                            onchange="this.form.submit()">
+
+                                        @if (member.Role == WorkspaceRole.Member)
+                                        {
+                                            <option value="Member" selected>
+                                                Member
+                                            </option>
+                                            <option value="Manager">
+                                                Manager
+                                            </option>
+                                        }
+                                        else
+                                        {
+                                            <option value="Member">
+                                                Member
+                                            </option>
+                                            <option value="Manager" selected>
+                                                Manager
+                                            </option>
+                                        }
+
+                                    </select>
+
+                                </form>
+
+                                <form asp-controller="WorkspaceMember"
+                                      asp-action="Remove"
+                                      method="post"
+                                      onsubmit="return confirm('Remove this member from the workspace?');">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden"
+                                           name="workspaceId"
+                                           value="@Model.Id" />
+
+                                    <input type="hidden"
+                                           name="userId"
+                                           value="@member.UserId" />
+
+                                    <button type="submit"
+                                            class="member-remove">
+                                        Remove
+                                    </button>
+
+                                </form>
+                            }
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+
+            @if (canManage)
+            {
+                <div class="add-member-box">
+
+                    <h3>Add member</h3>
+
+                    <p>
+                        The user must already have an account.
+                    </p>
+
+                    <form asp-controller="WorkspaceMember"
+                          asp-action="Add"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden"
+                               name="WorkspaceId"
+                               value="@Model.Id" />
+
+                        <div class="member-form-row">
+
+                            <input type="email"
+                                   name="Email"
+                                   class="form-control"
+                                   placeholder="user@example.com"
+                                   required />
+
+                            <select name="Role"
+                                    class="form-control">
+
+                                <option value="Member">
+                                    Member
+                                </option>
+
+                                <option value="Manager">
+                                    Manager
+                                </option>
+
+                            </select>
+
+                            <button type="submit"
+                                    class="btn btn-primary">
+                                Add
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+            }
+
+        </aside>
 
     </div>
 

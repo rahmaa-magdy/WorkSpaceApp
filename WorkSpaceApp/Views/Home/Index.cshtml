@@ -1,8 +1,173 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model WorkSpaceApp.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="dashboard-page">
+
+    <div class="dashboard-header">
+
+        <div>
+            <div class="page-eyebrow">Workspace</div>
+
+            <h1>
+                Good morning, @Model.UserName
+            </h1>
+
+            <p>
+                Here's what's happening across your workspaces.
+            </p>
+        </div>
+
+        <a asp-controller="Workspace"
+           asp-action="Create"
+           class="btn btn-primary">
+            + New Workspace
+        </a>
+
+    </div>
+
+
+    <div class="dashboard-stats">
+
+        <div class="stat-card">
+            <span class="stat-label">Workspaces</span>
+            <strong>@Model.WorkspaceCount</strong>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-label">Active Projects</span>
+            <strong>@Model.ActiveProjectCount</strong>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-label">Open Tasks</span>
+            <strong>@Model.OpenTaskCount</strong>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-label">Completed Tasks</span>
+            <strong>@Model.CompletedTaskCount</strong>
+        </div>
+
+    </div>
+
+
+    <div class="dashboard-grid">
+
+        <section class="dashboard-card">
+
+            <div class="dashboard-card-header">
+
+                <div>
+                    <h2>Recent Tasks</h2>
+                    <p>Your latest workspace activity.</p>
+                </div>
+
+            </div>
+
+
+            @if (!Model.RecentTasks.Any())
+            {
+                <div class="dashboard-empty">
+                    <p>No tasks yet.</p>
+
+                    <a asp-controller="Workspace"
+                       asp-action="Index">
+                        Open a workspace
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="dashboard-task-list">
+
+                    @foreach (var task in Model.RecentTasks)
+                    {
+                        <a asp-controller="WorkTask"
+                           asp-action="Details"
+                           asp-route-id="@task.Id"
+                           class="dashboard-task">
+
+                            <div>
+
+                                <strong>
+                                    @task.Title
+                                </strong>
+
+                                <span>
+                                    @task.Project.Name
+                                </span>
+
+                            </div>
+
+                            <span class="task-status status-@task.Status.ToString().ToLower()">
+                                @task.Status
+                            </span>
+
+                        </a>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+
+        <section class="dashboard-card">
+
+            <div class="dashboard-card-header">
+
+                <div>
+                    <h2>Upcoming Deadlines</h2>
+                    <p>Tasks that need your attention.</p>
+                </div>
+
+            </div>
+
+
+            @if (!Model.UpcomingTasks.Any())
+            {
+                <div class="dashboard-empty">
+                    <p>No upcoming deadlines.</p>
+                </div>
+            }
+            else
+            {
+                <div class="dashboard-task-list">
+
+                    @foreach (var task in Model.UpcomingTasks)
+                    {
+                        <a asp-controller="WorkTask"
+                           asp-action="Details"
+                           asp-route-id="@task.Id"
+                           class="dashboard-task">
+
+                            <div>
+
+                                <strong>
+                                    @task.Title
+                                </strong>
+
+                                <span>
+                                    @task.Project.Name
+                                </span>
+
+                            </div>
+
+                            <span class="dashboard-date">
+                                @task.DueDate?.ToString("MMM dd")
+                            </span>
+
+                        </a>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+    </div>
+
 </div>

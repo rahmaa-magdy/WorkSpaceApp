@@ -16,7 +16,7 @@ namespace WorkSpaceApp.ViewModels
         [StringLength(1000)]
         public string? Description { get; set; }
 
-        public TaskStatus Status { get; set; }
+        public WorkSpaceApp.Models.TaskStatus Status { get; set; }
 
         public TaskPriority Priority { get; set; }
 

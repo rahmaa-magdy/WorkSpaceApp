@@ -1,19 +1,27 @@
 ﻿@{
-    ViewData["Title"] = "Access Denied";
+    ViewData["Title"] = "Access denied";
 }
 
-<div class="empty-state">
+<div class="error-page">
 
-    <h2>Access denied</h2>
+    <div class="error-box">
 
-    <p>
-        You don't have permission to access this page.
-    </p>
+        <div class="page-eyebrow">
+            Permission
+        </div>
 
-    <a asp-controller="Home"
-       asp-action="Index"
-       class="btn btn-dark">
-        Back to home
-    </a>
+        <h1>Access denied</h1>
+
+        <p>
+            You don't have permission to perform this action.
+        </p>
+
+        <a asp-controller="Home"
+           asp-action="Index"
+           class="btn btn-primary">
+            Back to Dashboard
+        </a>
+
+    </div>
 
 </div>

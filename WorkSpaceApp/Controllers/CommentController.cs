@@ -95,7 +95,7 @@ namespace WorkSpaceApp.Controllers
                 return Forbid();
             }
 
-            // A user can only delete their own comment.
+            //user can only delete their own comment not other's
             if (comment.UserId != userId)
             {
                 return Forbid();
